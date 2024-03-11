@@ -1,0 +1,9 @@
+README.md
+setup.py
+RecursiveCharacterTextSplitter/__init__.py
+RecursiveCharacterTextSplitter/other_source_files.py
+RecursiveCharacterTextSplitter/recursive_character_text_splitter.py
+RecursiveCharacterTextSplitter.egg-info/PKG-INFO
+RecursiveCharacterTextSplitter.egg-info/SOURCES.txt
+RecursiveCharacterTextSplitter.egg-info/dependency_links.txt
+RecursiveCharacterTextSplitter.egg-info/top_level.txt

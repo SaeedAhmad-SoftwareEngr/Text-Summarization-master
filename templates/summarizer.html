@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Text Summarizer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<style>
+    body {
+        background-color: #f0f0f0;
+        font-family: Arial, sans-serif;
+    }
+
+    header {
+        background-color: #333;
+        color: #fff;
+        padding: 20px 0;
+    }
+
+    header a.navbar-brand {
+        color: #fff;
+        font-weight: bold;
+        font-size: 24px;
+    }
+
+    header .navbar-toggle-icon {
+        color: #fff;
+    }
+
+    .container {
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .container h1 {
+        font-size: 36px;
+        margin-bottom: 20px;
+    }
+
+    .container p {
+        font-size: 18px;
+    }
+
+    .container textarea {
+        width: 100%;
+        height: 250px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        overflow: auto; /* Make the textarea scrollable */
+    }
+
+    .container input[type="number"] {
+        width: 100px;
+        height: 40px;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .container select {
+        width: 100%;
+        height: 40px;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .container input[type="submit"] {
+        background-color: #333;
+        color: #fff;
+        font-size: 18px;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        cursor: pointer;
+    }
+
+    .container h4 {
+        font-size: 24px;
+        margin-top: 20px;
+    }
+
+    .container textarea#output_text {
+        width: 100%;
+        height: 250px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+
+    footer {
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        padding: 10px 0;
+    }
+
+    footer .weblinks-inline li {
+        display: inline-block;
+        font-size: 18px;
+        margin: 0 10px;
+    }
+
+    .copyright {
+        font-size: 14px;
+    }
+
+    /* Add new styles for language selection */
+    .container select#language_select {
+        margin-top: 10px;
+    }
+
+    /* Add new styles for input type selection */
+    .container select#input_type {
+        margin-top: 10px;
+    }
+
+    /* Add new styles for PDF upload option */
+    .container #pdfOption {
+        display: none;
+    }
+
+    /* Add new styles for Text input option */
+    .container #textOption {
+        display: none;
+    }
+</style>
+
+<body>
+    <nav class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#input">Summarizer</a>
+            </div>
+            <div class="collapse navbar-collapse" id="myNavbar">
+                <ul class="nav navbar-nav">
+                    <li class="active"><a href="/">Home</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="input container" id="input">
+        <div class="form-container" id="sum-section">
+            <form action="/summarizer" id="sumform" method="POST" enctype="multipart/form-data">
+                <p>Select Input Type:</p>
+                <select name="input_type" id="input_type" required>
+                    <option value="Text">Text</option>
+                    <option value="Document">Document</option>
+                </select>
+
+                <p>Select Summarization Type:</p>
+                <select name="summarization_method" id="summarization_method" required>
+                    <option value="LaMini Model">LaMini Model</option>
+                    <option value="NLTK">NLTK</option>
+                    <option value="NLP">NLP</option>
+                </select>
+
+                <!-- Add a language selection dropdown for NLP -->
+                <select name="language" id="language_select" style="display: none;">
+                    <option value="en">English</option>
+                    <option value="ur">Urdu</option>
+                    <!-- Add more languages if needed -->
+                </select>
+
+                <div id="textOption" style="display: none;">
+                    <p>Enter the text you wish to summarize:</p>
+                    <textarea maxlength="50000" name="input_text" id="input_text"
+                        style="width: 100%; height: 250px; overflow: auto;"
+                        value="{{request.form['input_text']}}" onInput="TextCounter(this, 32)"></textarea>
+                </div>
+
+                <div id="pdfOption" style="display: none;">
+                    <p>Upload PDF file:</p>
+                    <input type="file" name="pdf_file" accept=".pdf">
+                </div>
+
+                <!-- Existing code for num_sentences input and submit button -->
+                <p>Number of Sentences:</p>
+                <input type="number" name="num_sentences" id="num_sentences" value="5" required>
+
+                <input type="submit" value="Submit">
+                <br>
+                <br>
+                <h4>Summarized Text:</h4>
+                <p>{{ output_summary|safe }}</p>
+                <br>
+                <h4>Original Text:</h4>
+                <!-- Display the original text in a scrollable textarea -->
+                <textarea readonly style="width: 100%; height: 250px; overflow: auto;">{{ input_text }}</textarea>
+                <p>Word Count Before Summarization: {{ word_count_before }}</p>
+                <p>Word Count After Summarization: {{ word_count_after }}</p>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <ul class="list-unstyled weblinks-inline">
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+                <li><a href="#">Contact Us</a></li>
+            </ul>
+            <p class="copyright">&copy; 2023 Text Summarizer. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+</body>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $("#input_type").change(function () {
+            var selectedInputType = $(this).val();
+            if (selectedInputType === "Text") {
+                $("#textOption").show();
+                $("#pdfOption").hide();
+            } else if (selectedInputType === "Document") {
+                $("#textOption").hide();
+                $("#pdfOption").show();
+            } else {
+                $("#textOption").hide();
+                $("#pdfOption").hide();
+            }
+        });
+
+        $("#summarization_method").change(function () {
+            var selectedMethod = $(this).val();
+            if (selectedMethod === "PDF") {
+                $("#pdfOption").show();
+                $("#textOption").hide();
+                $("#language_select").hide(); // Hide language selection for PDF
+            } else if (selectedMethod === "NLP") {
+                $("#pdfOption").hide();
+                $("#textOption").show();
+                $("#language_select").show(); // Show language selection for NLP
+            } else {
+                $("#pdfOption").hide();
+                $("#textOption").show();
+                $("#language_select").hide(); // Hide language selection for other methods
+            }
+        });
+    });
+</script>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+<!--final code without orignal text handling -->
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+
+<!--<head>-->
+<!--    <title>Text Summarizer</title>-->
+<!--    <meta charset="utf-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1">-->
+
+<!--    &lt;!&ndash; Latest compiled and minified CSS &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">-->
+
+<!--    &lt;!&ndash; jQuery library &ndash;&gt;-->
+<!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>-->
+
+<!--    &lt;!&ndash; Latest compiled JavaScript &ndash;&gt;-->
+<!--    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
+
+<!--    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet" />-->
+<!--    <link rel="stylesheet" href="css/style.css" />-->
+<!--</head>-->
+
+<!--<style>-->
+<!--    body {-->
+<!--        background-color: #f0f0f0;-->
+<!--        font-family: Arial, sans-serif;-->
+<!--    }-->
+
+<!--    header {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        padding: 20px 0;-->
+<!--    }-->
+
+<!--    header a.navbar-brand {-->
+<!--        color: #fff;-->
+<!--        font-weight: bold;-->
+<!--        font-size: 24px;-->
+<!--    }-->
+
+<!--    header .navbar-toggle-icon {-->
+<!--        color: #fff;-->
+<!--    }-->
+
+<!--    .container {-->
+<!--        background-color: #fff;-->
+<!--        border-radius: 5px;-->
+<!--        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);-->
+<!--        padding: 20px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container h1 {-->
+<!--        font-size: 36px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    .container p {-->
+<!--        font-size: 18px;-->
+<!--    }-->
+
+<!--    .container textarea {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--    }-->
+
+<!--    .container input[type="number"] {-->
+<!--        width: 100px;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container select {-->
+<!--        width: 100%;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container input[type="submit"] {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        font-size: 18px;-->
+<!--        border: none;-->
+<!--        border-radius: 5px;-->
+<!--        padding: 10px 20px;-->
+<!--        cursor: pointer;-->
+<!--    }-->
+
+<!--    .container h4 {-->
+<!--        font-size: 24px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container #output_text {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    footer {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        text-align: center;-->
+<!--        padding: 10px 0;-->
+<!--    }-->
+
+<!--    footer .weblinks-inline li {-->
+<!--        display: inline-block;-->
+<!--        font-size: 18px;-->
+<!--        margin: 0 10px;-->
+<!--    }-->
+
+<!--    .copyright {-->
+<!--        font-size: 14px;-->
+<!--    }-->
+
+<!--    /* Add new styles for language selection */-->
+<!--    .container select#language_select {-->
+<!--        margin-top: 10px;-->
+<!--    }-->
+
+<!--    /* Add new styles for input type selection */-->
+<!--    .container select#input_type {-->
+<!--        margin-top: 10px;-->
+<!--    }-->
+
+<!--    /* Add new styles for PDF upload option */-->
+<!--    .container #pdfOption {-->
+<!--        display: none;-->
+<!--    }-->
+
+<!--    /* Add new styles for Text input option */-->
+<!--    .container #textOption {-->
+<!--        display: none;-->
+<!--    }-->
+<!--</style>-->
+
+<!--<body>-->
+<!--    <nav class="navbar navbar-inverse">-->
+<!--        <div class="container-fluid">-->
+<!--            <div class="navbar-header">-->
+<!--                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                </button>-->
+<!--                <a class="navbar-brand" href="#input">Summarizer</a>-->
+<!--            </div>-->
+<!--            <div class="collapse navbar-collapse" id="myNavbar">-->
+<!--                <ul class="nav navbar-nav">-->
+<!--                    <li class="active"><a href="/">Home</a></li>-->
+<!--                </ul>-->
+<!--                <ul class="nav navbar-nav navbar-right">-->
+<!--                    <li><a href="/logout">Logout</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </nav>-->
+
+<!--    <section class="input container" id="input">-->
+<!--        <div class="form-container" id="sum-section">-->
+<!--            <form action="/summarizer" id="sumform" method="POST" enctype="multipart/form-data">-->
+<!--                <p>Select Input Type:</p>-->
+<!--                <select name="input_type" id="input_type" required>-->
+<!--                    <option value="Text">Text</option>-->
+<!--                    <option value="Document">Document</option>-->
+<!--                </select>-->
+
+<!--                <p>Select Summarization Type:</p>-->
+<!--                <select name="summarization_method" id="summarization_method" required>-->
+<!--                    <option value="LaMini Model">LaMini Model</option>-->
+<!--                    <option value="NLTK">NLTK</option>-->
+<!--                    <option value="NLP">NLP</option>-->
+<!--                </select>-->
+
+<!--                &lt;!&ndash; Add a language selection dropdown for NLP &ndash;&gt;-->
+<!--                <select name="language" id="language_select" style="display: none;">-->
+<!--                    <option value="en">English</option>-->
+<!--                    <option value="ur">Urdu</option>-->
+<!--                    &lt;!&ndash; Add more languages if needed &ndash;&gt;-->
+<!--                </select>-->
+
+<!--                <div id="textOption" style="display: none;">-->
+<!--                    <p>Enter the text you wish to summarize:</p>-->
+<!--                    <textarea maxlength="50000" name="input_text" id="input_text"-->
+<!--                        style="width:930px; height:250px"-->
+<!--                        value="{{request.form['input_text']}}" onInput="TextCounter(this, 32)"></textarea>-->
+<!--                </div>-->
+
+<!--                <div id="pdfOption" style="display: none;">-->
+<!--                    <p>Upload PDF file:</p>-->
+<!--                    <input type="file" name="pdf_file" accept=".pdf">-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; Existing code for num_sentences input and submit button &ndash;&gt;-->
+<!--                <p>Number of Sentences:</p>-->
+<!--                <input type="number" name="num_sentences" id="num_sentences" value="5" required>-->
+
+<!--                <input type="submit" value="Submit">-->
+<!--                <br>-->
+<!--                <br>-->
+<!--                <h4>Summarized Text:</h4>-->
+<!--                <p>{{ output_summary|safe }}</p>-->
+<!--                <br>-->
+<!--                <h4>Original Text:</h4>-->
+<!--                <p>{{ input_text }}</p>-->
+<!--                <p>Word Count Before Summarization: {{ word_count_before }}</p>-->
+<!--                <p>Word Count After Summarization: {{ word_count_after }}</p>-->
+<!--            </form>-->
+<!--        </div>-->
+<!--    </section>-->
+
+<!--    <footer>-->
+<!--        <div class="container">-->
+<!--            <ul class="list-unstyled weblinks-inline">-->
+<!--                <li><a href="#">Privacy Policy</a></li>-->
+<!--                <li><a href="#">Terms of Service</a></li>-->
+<!--                <li><a href="#">Contact Us</a></li>-->
+<!--            </ul>-->
+<!--            <p class="copyright">&copy; 2023 Text Summarizer. All Rights Reserved.</p>-->
+<!--        </div>-->
+<!--    </footer>-->
+
+<!--</body>-->
+
+<!--<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>-->
+<!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>-->
+
+<!--<script>-->
+<!--    $(document).ready(function () {-->
+<!--        $("#input_type").change(function () {-->
+<!--            var selectedInputType = $(this).val();-->
+<!--            if (selectedInputType === "Text") {-->
+<!--                $("#textOption").show();-->
+<!--                $("#pdfOption").hide();-->
+<!--            } else if (selectedInputType === "Document") {-->
+<!--                $("#textOption").hide();-->
+<!--                $("#pdfOption").show();-->
+<!--            } else {-->
+<!--                $("#textOption").hide();-->
+<!--                $("#pdfOption").hide();-->
+<!--            }-->
+<!--        });-->
+
+<!--        $("#summarization_method").change(function () {-->
+<!--            var selectedMethod = $(this).val();-->
+<!--            if (selectedMethod === "PDF") {-->
+<!--                $("#pdfOption").show();-->
+<!--                $("#textOption").hide();-->
+<!--                $("#language_select").hide(); // Hide language selection for PDF-->
+<!--            } else if (selectedMethod === "NLP") {-->
+<!--                $("#pdfOption").hide();-->
+<!--                $("#textOption").show();-->
+<!--                $("#language_select").show(); // Show language selection for NLP-->
+<!--            } else {-->
+<!--                $("#pdfOption").hide();-->
+<!--                $("#textOption").show();-->
+<!--                $("#language_select").hide(); // Hide language selection for other methods-->
+<!--            }-->
+<!--        });-->
+<!--    });-->
+<!--</script>-->
+
+<!--</html>-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+
+<!--<head>-->
+<!--    <title>Text Summarizer</title>-->
+<!--    <meta charset="utf-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1">-->
+
+<!--    &lt;!&ndash; Latest compiled and minified CSS &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">-->
+
+<!--    &lt;!&ndash; jQuery library &ndash;&gt;-->
+<!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>-->
+
+<!--    &lt;!&ndash; Latest compiled JavaScript &ndash;&gt;-->
+<!--    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
+
+<!--    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet" />-->
+<!--    <link rel="stylesheet" href="css/style.css" />-->
+<!--</head>-->
+
+<!--<style>-->
+<!--   body {-->
+<!--        background-color: #f0f0f0;-->
+<!--        font-family: Arial, sans-serif;-->
+<!--    }-->
+
+<!--    header {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        padding: 20px 0;-->
+<!--    }-->
+
+<!--    header a.navbar-brand {-->
+<!--        color: #fff;-->
+<!--        font-weight: bold;-->
+<!--        font-size: 24px;-->
+<!--    }-->
+
+<!--    header .navbar-toggle-icon {-->
+<!--        color: #fff;-->
+<!--    }-->
+
+<!--    .container {-->
+<!--        background-color: #fff;-->
+<!--        border-radius: 5px;-->
+<!--        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);-->
+<!--        padding: 20px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container h1 {-->
+<!--        font-size: 36px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    .container p {-->
+<!--        font-size: 18px;-->
+<!--    }-->
+
+<!--    .container textarea {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--    }-->
+
+<!--    .container input[type="number"] {-->
+<!--        width: 100px;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container select {-->
+<!--        width: 100%;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container input[type="submit"] {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        font-size: 18px;-->
+<!--        border: none;-->
+<!--        border-radius: 5px;-->
+<!--        padding: 10px 20px;-->
+<!--        cursor: pointer;-->
+<!--    }-->
+
+<!--    .container h4 {-->
+<!--        font-size: 24px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container #output_text {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    footer {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        text-align: center;-->
+<!--        padding: 10px 0;-->
+<!--    }-->
+
+<!--    footer .weblinks-inline li {-->
+<!--        display: inline-block;-->
+<!--        font-size: 18px;-->
+<!--        margin: 0 10px;-->
+<!--    }-->
+
+<!--    .copyright {-->
+<!--        font-size: 14px;-->
+<!--    }-->
+
+<!--    /* Add new styles for language selection */-->
+<!--    .container select#language_select {-->
+<!--        margin-top: 10px;-->
+<!--    }-->
+<!--</style>-->
+
+<!--<body>-->
+<!--   <nav class="navbar navbar-inverse">-->
+<!--        <div class="container-fluid">-->
+<!--            <div class="navbar-header">-->
+<!--                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                </button>-->
+<!--                <a class="navbar-brand" href="#input">Summarizer</a>-->
+<!--            </div>-->
+<!--            <div class="collapse navbar-collapse" id="myNavbar">-->
+<!--                <ul class="nav navbar-nav">-->
+<!--                    <li class="active"><a href="/">Home</a></li>-->
+<!--                </ul>-->
+<!--                <ul class="nav navbar-nav navbar-right">-->
+<!--                    <li><a href="/logout">Logout</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </nav>-->
+
+<!--    <section class="input container" id="input">-->
+<!--        <div class="form-container" id="sum-section">-->
+<!--            <form action="/summarizer" id="sumform" method="POST" enctype="multipart/form-data">-->
+<!--                <p>Select Summarization Type:</p>-->
+<!--                <select name="summarization_method" id="summarization_method" required>-->
+<!--                    <option value="LaMini Model">LaMini Model</option>-->
+<!--                    <option value="NLTK">NLTK</option>-->
+<!--                    <option value="NLP">NLP</option>-->
+<!--                    <option value="PDF">PDF</option>-->
+<!--                </select>-->
+
+<!--                &lt;!&ndash; Add a language selection dropdown for NLP &ndash;&gt;-->
+<!--                <select name="language" id="language_select" style="display: none;">-->
+<!--                    <option value="en">English</option>-->
+<!--                    <option value="ur">Urdu</option>-->
+<!--                    &lt;!&ndash; Add more languages if needed &ndash;&gt;-->
+<!--                </select>-->
+
+<!--                <div id="textOption" style="display: none;">-->
+<!--                    <p>Enter the text you wish to summarize:</p>-->
+<!--                    <textarea maxlength="50000" name="input_text" id="input_text"-->
+<!--                        style="width:930px; height:250px"-->
+<!--                        value="{{request.form['input_text']}}" onInput="TextCounter(this, 32)"></textarea>-->
+<!--                </div>-->
+
+<!--                <div id="pdfOption" style="display: none;">-->
+<!--                    <p>Upload PDF file:</p>-->
+<!--                    <input type="file" name="pdf_file" accept=".pdf">-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; Existing code for num_sentences input and submit button &ndash;&gt;-->
+
+<!--                <h4>Summarized Text:</h4>-->
+<!--                <p>{{ output_summary|safe }}</p>-->
+<!--                <br>-->
+<!--                <h4>Original Text:</h4>-->
+<!--                <p>{{ input_text }}</p>-->
+<!--            </form>-->
+<!--        </div>-->
+<!--    </section>-->
+
+<!--     <footer>-->
+<!--        <div class="container">-->
+<!--            <ul class="list-unstyled weblinks-inline">-->
+<!--                <li><a href="#">Privacy Policy</a></li>-->
+<!--                <li><a href="#">Terms of Service</a></li>-->
+<!--                <li><a href="#">Contact Us</a></li>-->
+<!--            </ul>-->
+<!--            <p class="copyright">&copy; 2023 Text Summarizer. All Rights Reserved.</p>-->
+<!--        </div>-->
+<!--    </footer>-->
+
+<!--</body>-->
+
+<!--<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>-->
+<!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>-->
+
+<!--<script>-->
+<!--    $(document).ready(function () {-->
+<!--        $("#summarization_method").change(function () {-->
+<!--            var selectedMethod = $(this).val();-->
+<!--            if (selectedMethod === "PDF") {-->
+<!--                $("#pdfOption").show();-->
+<!--                $("#textOption").hide();-->
+<!--                $("#language_select").hide(); // Hide language selection for PDF-->
+<!--            } else if (selectedMethod === "NLP") {-->
+<!--                $("#pdfOption").hide();-->
+<!--                $("#textOption").show();-->
+<!--                $("#language_select").show(); // Show language selection for NLP-->
+<!--            } else {-->
+<!--                $("#pdfOption").hide();-->
+<!--                $("#textOption").show();-->
+<!--                $("#language_select").hide(); // Hide language selection for other methods-->
+<!--            }-->
+<!--        });-->
+<!--    });-->
+<!--</script>-->
+
+<!--</html>-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+
+<!--<head>-->
+<!--    <title>Text Summarizer</title>-->
+<!--    <meta charset="utf-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1">-->
+
+<!--    &lt;!&ndash; Latest compiled and minified CSS &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">-->
+
+<!--    &lt;!&ndash; jQuery library &ndash;&gt;-->
+<!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>-->
+
+<!--    &lt;!&ndash; Latest compiled JavaScript &ndash;&gt;-->
+<!--    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
+
+<!--    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet" />-->
+<!--    <link rel="stylesheet" href="css/style.css" />-->
+<!--</head>-->
+
+<!--<style>-->
+<!--    body {-->
+<!--        background-color: #f0f0f0;-->
+<!--        font-family: Arial, sans-serif;-->
+<!--    }-->
+
+<!--    header {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        padding: 20px 0;-->
+<!--    }-->
+
+<!--    header a.navbar-brand {-->
+<!--        color: #fff;-->
+<!--        font-weight: bold;-->
+<!--        font-size: 24px;-->
+<!--    }-->
+
+<!--    header .navbar-toggle-icon {-->
+<!--        color: #fff;-->
+<!--    }-->
+
+<!--    .container {-->
+<!--        background-color: #fff;-->
+<!--        border-radius: 5px;-->
+<!--        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);-->
+<!--        padding: 20px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container h1 {-->
+<!--        font-size: 36px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    .container p {-->
+<!--        font-size: 18px;-->
+<!--    }-->
+
+<!--    .container textarea {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--    }-->
+
+<!--    .container input[type="number"] {-->
+<!--        width: 100px;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container select {-->
+<!--        width: 100%;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container input[type="submit"] {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        font-size: 18px;-->
+<!--        border: none;-->
+<!--        border-radius: 5px;-->
+<!--        padding: 10px 20px;-->
+<!--        cursor: pointer;-->
+<!--    }-->
+
+<!--    .container h4 {-->
+<!--        font-size: 24px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container #output_text {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    footer {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        text-align: center;-->
+<!--        padding: 10px 0;-->
+<!--    }-->
+
+<!--    footer .weblinks-inline li {-->
+<!--        display: inline-block;-->
+<!--        font-size: 18px;-->
+<!--        margin: 0 10px;-->
+<!--    }-->
+
+<!--    .copyright {-->
+<!--        font-size: 14px;-->
+<!--    }-->
+<!--</style>-->
+
+<!--<body>-->
+<!--    <nav class="navbar navbar-inverse">-->
+<!--        <div class="container-fluid">-->
+<!--            <div class="navbar-header">-->
+<!--                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                </button>-->
+<!--                <a class="navbar-brand" href="#input">Summarizer</a>-->
+<!--            </div>-->
+<!--            <div class="collapse navbar-collapse" id="myNavbar">-->
+<!--                <ul class="nav navbar-nav">-->
+<!--                    <li class="active"><a href="/">Home</a></li>-->
+<!--                </ul>-->
+<!--                <ul class="nav navbar-nav navbar-right">-->
+<!--                    <li><a href="/logout">Logout</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </nav>-->
+
+<!--    <section class="input container" id="input">-->
+<!--        <div class="form-container" id="sum-section">-->
+<!--            <form action="/summarizer" id="sumform" method="POST" enctype="multipart/form-data">-->
+<!--                <p>Select Summarization Type:</p>-->
+<!--                <select name="summarization_method" id="summarization_method" required>-->
+<!--                    <option value="LaMini Model">LaMini Model</option>-->
+<!--                    <option value="NLTK">NLTK</option>-->
+<!--                    <option value="NLP">NLP</option>-->
+<!--                    <option value="PDF">PDF</option>-->
+<!--                </select>-->
+
+<!--                <div id="textOption" style="display: none;">-->
+<!--                    <p>Enter the text you wish to summarize:</p>-->
+<!--                    <textarea maxlength="50000" name="input_text" id="input_text"-->
+<!--                        style="width:930px; height:250px"-->
+<!--                        value="{{request.form['input_text']}}" onInput="TextCounter(this, 32)"></textarea>-->
+<!--                </div>-->
+
+<!--                <div id="pdfOption" style="display: none;">-->
+<!--                    <p>Upload PDF file:</p>-->
+<!--                    <input type="file" name="pdf_file" accept=".pdf">-->
+<!--                </div>-->
+
+<!--                <p>Enter the summarized number of sentences you would like to be outputted: </p>-->
+<!--                <p>-->
+<!--                    <input type="number" name="num_sentences" pattern="[0-9]+" min="1" max="100" required>-->
+<!--                </p>-->
+<!--                <p>-->
+<!--                    <input type="submit" class="btn btn-success btn-md" value="Submit">-->
+<!--                </p>-->
+<!--               <h4>Summarized Text:</h4>-->
+<!--                 <p>{{ output_summary|safe }}</p>-->
+<!--                <br>-->
+<!--                <h4>Original Text:</h4>-->
+<!--                <p>{{ input_text }}</p>-->
+<!--            </form>-->
+<!--        </div>-->
+<!--    </section>-->
+
+<!--    <footer>-->
+<!--        <div class="container">-->
+<!--            <ul class="list-unstyled weblinks-inline">-->
+<!--                <li><a href="#">Privacy Policy</a></li>-->
+<!--                <li><a href="#">Terms of Service</a></li>-->
+<!--                <li><a href="#">Contact Us</a></li>-->
+<!--            </ul>-->
+<!--            <p class="copyright">&copy; 2023 Text Summarizer. All Rights Reserved.</p>-->
+<!--        </div>-->
+<!--    </footer>-->
+
+<!--</body>-->
+
+<!--<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>-->
+<!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>-->
+
+<!--<script>-->
+<!--    $(document).ready(function () {-->
+<!--        $("#summarization_method").change(function () {-->
+<!--            var selectedMethod = $(this).val();-->
+<!--            if (selectedMethod === "PDF") {-->
+<!--                $("#pdfOption").show();-->
+<!--                $("#textOption").hide();-->
+<!--            } else {-->
+<!--                $("#pdfOption").hide();-->
+<!--                $("#textOption").show();-->
+<!--            }-->
+<!--        });-->
+<!--    });-->
+<!--</script>-->
+
+<!--</html>-->
+
+
+
+
+<!--<!DOCTYPE html>-->
+
+
+<!--<html lang="en">-->
+
+<!--<head>-->
+<!--    <title>Text Summarizer</title>-->
+<!--    <meta charset="utf-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1">-->
+
+<!--    &lt;!&ndash; Latest compiled and minified CSS &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">-->
+
+<!--    &lt;!&ndash; jQuery library &ndash;&gt;-->
+<!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>-->
+
+<!--    &lt;!&ndash; Latest compiled JavaScript &ndash;&gt;-->
+<!--    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
+
+<!--    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet" />-->
+<!--    <link rel="stylesheet" href="css/style.css" />-->
+<!--</head>-->
+
+<!--<style>-->
+<!--    body {-->
+<!--        background-color: #f0f0f0;-->
+<!--        font-family: Arial, sans-serif;-->
+<!--    }-->
+
+<!--    header {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        padding: 20px 0;-->
+<!--    }-->
+
+<!--    header a.navbar-brand {-->
+<!--        color: #fff;-->
+<!--        font-weight: bold;-->
+<!--        font-size: 24px;-->
+<!--    }-->
+
+<!--    header .navbar-toggle-icon {-->
+<!--        color: #fff;-->
+<!--    }-->
+
+<!--    .container {-->
+<!--        background-color: #fff;-->
+<!--        border-radius: 5px;-->
+<!--        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);-->
+<!--        padding: 20px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container h1 {-->
+<!--        font-size: 36px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    .container p {-->
+<!--        font-size: 18px;-->
+<!--    }-->
+
+<!--    .container textarea {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--    }-->
+
+<!--    .container input[type="number"] {-->
+<!--        width: 100px;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container select {-->
+<!--        width: 100%;-->
+<!--        height: 40px;-->
+<!--        padding: 10px;-->
+<!--        font-size: 16px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--    }-->
+
+<!--    .container input[type="submit"] {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        font-size: 18px;-->
+<!--        border: none;-->
+<!--        border-radius: 5px;-->
+<!--        padding: 10px 20px;-->
+<!--        cursor: pointer;-->
+<!--    }-->
+
+<!--    .container h4 {-->
+<!--        font-size: 24px;-->
+<!--        margin-top: 20px;-->
+<!--    }-->
+
+<!--    .container #output_text {-->
+<!--        width: 100%;-->
+<!--        height: 250px;-->
+<!--        padding: 10px;-->
+<!--        border: 1px solid #ccc;-->
+<!--        border-radius: 5px;-->
+<!--        font-size: 16px;-->
+<!--        margin-bottom: 20px;-->
+<!--    }-->
+
+<!--    footer {-->
+<!--        background-color: #333;-->
+<!--        color: #fff;-->
+<!--        text-align: center;-->
+<!--        padding: 10px 0;-->
+<!--    }-->
+
+<!--    footer .weblinks-inline li {-->
+<!--        display: inline-block;-->
+<!--        font-size: 18px;-->
+<!--        margin: 0 10px;-->
+<!--    }-->
+
+<!--    .copyright {-->
+<!--        font-size: 14px;-->
+<!--    }-->
+<!--</style>-->
+
+<!--<body>-->
+<!--    <nav class="navbar navbar-inverse">-->
+<!--        <div class="container-fluid">-->
+<!--            <div class="navbar-header">-->
+<!--                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                    <span class="icon-bar"></span>-->
+<!--                </button>-->
+<!--                <a class="navbar-brand" href="#input">Summarizer</a>-->
+<!--            </div>-->
+<!--            <div class="collapse navbar-collapse" id="myNavbar">-->
+<!--                <ul class="nav navbar-nav">-->
+<!--                    <li class="active"><a href="/">Home</a></li>-->
+<!--                </ul>-->
+<!--                <ul class="nav navbar-nav navbar-right">-->
+<!--                    <li><a href="/logout">Logout</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </nav>-->
+
+<!--    <section class="input container" id="input">-->
+<!--        <div class="form-container" id="sum-section">-->
+<!--            <form action="/summarizer" id="sumform" method="POST">-->
+<!--                <p>Select Summarization Type:</p>-->
+<!--                <select name="summarization_type" id="summarization_type" required>-->
+<!--                    <option value="text">Text</option>-->
+<!--                    <option value="pdf">PDF</option>-->
+<!--                    <div id="pdfOption" style="display: none;">-->
+<!--                    <p>Upload PDF file:</p>-->
+<!--                   <input type="file" name="pdf_file" accept=".pdf">-->
+<!--                    </div>-->
+<!--                </select>-->
+
+<!--                <div id="textOption" style="display: none;">-->
+<!--                    <p>Enter the text you wish to summarize:</p>-->
+<!--                    <textarea maxlength="50000" name="input_text" id="input_text"-->
+<!--                        style="width:930px; height:250px"-->
+<!--                        value="{{request.form['input_text']}}" onInput="TextCounter(this, 32)"></textarea>-->
+<!--                </div>-->
+
+<!--                <div id="pdfOption" style="display: none;">-->
+<!--                    <p>Upload PDF file:</p>-->
+<!--                    &lt;!&ndash; Add PDF file upload input field here &ndash;&gt;-->
+<!--                </div>-->
+
+<!--                <p>Enter the summarized number of sentences you would like to be outputted: </p>-->
+<!--                <p>-->
+<!--                    <input type="number" name="num_sentences" pattern="[0-9]+" min="1" max="100" required>-->
+<!--                </p>-->
+<!--                <p>Select Summarization Method:</p>-->
+<!--                <select name="summarization_method" id="summarization_method" required>-->
+<!--                    <option value="LaMini Model">LaMini Model</option>-->
+<!--                    <option value="NLTK">NLTK</option>-->
+<!--                    <option value="NLP">NLP</option>-->
+<!--                </select>-->
+<!--                <div id="languageDiv" style="display: none;">-->
+<!--                    <p>Select Language for NLP:</p>-->
+<!--                    <select name="language" id="language">-->
+<!--                        <option value="en">English</option>-->
+<!--                        &lt;!&ndash; Add more language options as needed &ndash;&gt;-->
+<!--                    </select>-->
+<!--                </div>-->
+<!--                <p>-->
+<!--                    <input type="submit" class="btn btn-success btn-md" value="Submit">-->
+<!--                </p>-->
+<!--               <h4>Summarized Text:</h4>-->
+<!--                 <p>{{ output_summary|safe }}</p>-->
+<!--                <br>-->
+<!--                <h4>Original Text:</h4>-->
+<!--                <p>{{ original_text }}</p>-->
+<!--            </form>-->
+<!--        </div>-->
+
+<!--    </section>-->
+
+<!--    <footer>-->
+<!--        <div class="container">-->
+<!--            <ul class="list-unstyled weblinks-inline">-->
+<!--                <li><a href="#">Privacy Policy</a></li>-->
+<!--                <li><a href="#">Terms of Service</a></li>-->
+<!--                <li><a href="#">Contact Us</a></li>-->
+<!--            </ul>-->
+<!--            <p class="copyright">&copy; 2023 Text Summarizer. All Rights Reserved.</p>-->
+<!--        </div>-->
+<!--    </footer>-->
+
+<!--</body>-->
+
+<!--<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>-->
+<!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>-->
+
+<!--<script>-->
+<!--    $(document).ready(function () {-->
+<!--        $("#summarization_type").change(function () {-->
+<!--            var selectedType = $(this).val();-->
+<!--            if (selectedType === "text") {-->
+<!--                $("#textOption").show();-->
+<!--                $("#pdfOption").hide();-->
+<!--            } else if (selectedType === "pdf") {-->
+<!--                $("#pdfOption").show();-->
+<!--                $("#textOption").hide();-->
+<!--            }-->
+<!--        });-->
+
+<!--        $("#summarization_method").change(function () {-->
+<!--            var selectedMethod = $(this).val();-->
+<!--            if (selectedMethod === "NLP") {-->
+<!--                $("#languageDiv").show();-->
+<!--            } else {-->
+<!--                $("#languageDiv").hide();-->
+<!--            }-->
+<!--        });-->
+<!--    });-->
+<!--</script>-->
+
+<!--</html>-->

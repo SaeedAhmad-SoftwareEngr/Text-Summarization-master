@@ -1,0 +1,15 @@
+README.md
+setup.py
+DirectoryLoader/__init__.py
+DirectoryLoader/directory_loader.py
+DirectoryLoader/other_source_file.py
+DirectoryLoader.egg-info/PKG-INFO
+DirectoryLoader.egg-info/SOURCES.txt
+DirectoryLoader.egg-info/dependency_links.txt
+DirectoryLoader.egg-info/top_level.txt
+PyPDFLoader/__init__.py
+PyPDFLoader/other_source_files.py
+PyPDFLoader/py_pdf_loader.py
+RecursiveCharacterTextSplitter/__init__.py
+RecursiveCharacterTextSplitter/other_source_files.py
+RecursiveCharacterTextSplitter/recursive_character_text_splitter.py
